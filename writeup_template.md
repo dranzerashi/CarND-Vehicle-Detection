@@ -1,6 +1,4 @@
-## Writeup Template
-### You can use this file as a template for your writeup if you want to submit it as a markdown file, but feel free to use some other method and submit a pdf if you prefer.
-
+## Writeup
 ---
 
 **Vehicle Detection Project**
@@ -15,8 +13,9 @@ The goals / steps of this project are the following:
 * Estimate a bounding box for vehicles detected.
 
 [//]: # (Image References)
-[image1]: ./examples/car_not_car.png
-[image2]: ./examples/HOG_example.jpg
+[car_noncar]: ./writeup_images/car_noncar.png
+[car_hog]: ./writeup_images/car_hog.png
+[noncar_hog]: ./writeup_images/noncar_hog.png
 [image3]: ./examples/sliding_windows.jpg
 [image4]: ./examples/sliding_window.jpg
 [image5]: ./examples/bboxes_and_heat.png
@@ -42,22 +41,27 @@ The code for this step is contained in the first code cell of the IPython notebo
 
 I started by reading in all the `vehicle` and `non-vehicle` images.  Here is an example of one of each of the `vehicle` and `non-vehicle` classes:
 
-![alt text][image1]
+![alt text][car_noncar]
 
 I then explored different color spaces and different `skimage.hog()` parameters (`orientations`, `pixels_per_cell`, and `cells_per_block`).  I grabbed random images from each of the two classes and displayed them to get a feel for what the `skimage.hog()` output looks like.
 
-Here is an example using the `YCrCb` color space and HOG parameters of `orientations=8`, `pixels_per_cell=(8, 8)` and `cells_per_block=(2, 2)`:
+Here is an example using the HOG parameters of `orientations=9`, `pixels_per_cell=(8, 8)` and `cells_per_block=(2, 2)`:
 
 
-![alt text][image2]
+![alt text][car_hog]
+![alt text][noncar_hog]
 
 #### 2. Explain how you settled on your final choice of HOG parameters.
 
-I tried various combinations of parameters and...
+I tried various combinations of parameters and I found that increasing the values beyond the ones mentioned did not improve the performance of the detection by any resonable amount whereas it was detrimental to the speed of both training as well as prediction. Hence I chose to use `orientations=9`, `pixels_per_cell=(8, 8)` and `cells_per_block=(2, 2)` for the HOG parameters.
 
 #### 3. Describe how (and identify where in your code) you trained a classifier using your selected HOG features (and color features if you used them).
 
-I trained a linear SVM using...
+The code for this step is contained in the first code cell of the IPython notebook (or in lines # through # of the file called `some_file.py`). 
+
+
+I used spatial binning to 
+I have tried training multiple types of SVM's for this purpose. Most oftrained a linear SVM using 
 
 ### Sliding Window Search
 
