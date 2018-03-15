@@ -4,6 +4,7 @@ import numpy as np
 import cv2
 from skimage.feature import hog
 from collections import deque
+from scipy.ndimage.measurements import label
 def convert_color(img, conv='RGB2YCrCb'):
     if conv == 'RGB2YCrCb':
         return cv2.cvtColor(img, cv2.COLOR_RGB2YCrCb)
