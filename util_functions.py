@@ -107,62 +107,6 @@ def extract_features(imgs, color_space='RGB', spatial_size=(32, 32),
     # Return list of feature vectors
     return features
     
-# Define a function that takes an image,
-# start and stop positions in both x and y, 
-# window size (x and y dimensions),  
-# and overlap fraction (for both x and y)
-def slide_window(img, x_start_stop=[None, None], y_start_stop=[None, None], 
-                    xy_window=(64, 64), xy_overlap=(0.5, 0.5)):
-    # If x and/or y start/stop positions not defined, set to image size
-    if x_start_stop[0] == None:
-        x_start_stop[0] = 0
-    if x_start_stop[1] == None:
-        x_start_stop[1] = img.shape[1]
-    if y_start_stop[0] == None:
-        y_start_stop[0] = 0
-    if y_start_stop[1] == None:
-        y_start_stop[1] = img.shape[0]
-    # Compute the span of the region to be searched    
-    xspan = x_start_stop[1] - x_start_stop[0]
-    yspan = y_start_stop[1] - y_start_stop[0]
-    # Compute the number of pixels per step in x/y
-    nx_pix_per_step = np.int(xy_window[0]*(1 - xy_overlap[0]))
-    ny_pix_per_step = np.int(xy_window[1]*(1 - xy_overlap[1]))
-    # Compute the number of windows in x/y
-    nx_buffer = np.int(xy_window[0]*(xy_overlap[0]))
-    ny_buffer = np.int(xy_window[1]*(xy_overlap[1]))
-    nx_windows = np.int((xspan-nx_buffer)/nx_pix_per_step) 
-    ny_windows = np.int((yspan-ny_buffer)/ny_pix_per_step) 
-    # Initialize a list to append window positions to
-    window_list = []
-    # Loop through finding x and y window positions
-    # Note: you could vectorize this step, but in practice
-    # you'll be considering windows one by one with your
-    # classifier, so looping makes sense
-    for ys in range(ny_windows):
-        for xs in range(nx_windows):
-            # Calculate window position
-            startx = xs*nx_pix_per_step + x_start_stop[0]
-            endx = startx + xy_window[0]
-            starty = ys*ny_pix_per_step + y_start_stop[0]
-            endy = starty + xy_window[1]
-            
-            # Append window position to list
-            window_list.append(((startx, starty), (endx, endy)))
-    # Return the list of windows
-    return window_list
-
-# Define a function to draw bounding boxes
-def draw_boxes(img, bboxes, color=(0, 0, 255), thick=6):
-    # Make a copy of the image
-    imcopy = np.copy(img)
-    # Iterate through the bounding boxes
-    for bbox in bboxes:
-        # Draw a rectangle given bbox coordinates
-        cv2.rectangle(imcopy, bbox[0], bbox[1], color, thick)
-    # Return the image copy with boxes drawn
-    return imcopy
-
 
 def add_heat(heatmap, bbox_list):
     # Iterate through list of bboxes
@@ -194,11 +138,12 @@ def draw_labeled_bboxes(img, labels):
         cv2.rectangle(img, bbox[0], bbox[1], (0,0,255), 6)
     # Return the image
     return img
-def find_cars_prev(img, ystart, ystop, scales, svc, X_scaler, orient, pix_per_cell, cell_per_block, spatial_size, hist_bins):
+
+def find_cars(img, ystart, ystop, scales, svc, X_scaler, orient, pix_per_cell, cell_per_block, spatial_size, hist_bins,heat_threshold, recent_heats):
     draw_img = np.copy(img)
     img = img.astype(np.float32) / 255
-
     img_tosearch = img[ystart:ystop, :, :]
+    boxes = []
     ctrans_img = convert_color(img_tosearch, conv='RGB2YCrCb')
     for scale in scales:
         if scale != 1:
@@ -252,13 +197,27 @@ def find_cars_prev(img, ystart, ystop, scales, svc, X_scaler, orient, pix_per_ce
                 test_features = X_scaler.transform(np.hstack((spatial_features, hist_features, hog_features)).reshape(1, -1))
                 # test_features = X_scaler.transform(np.hstack((shape_feat, hist_feat)).reshape(1, -1))
                 #test_features = X_scaler.transform(np.hstack(hog_features)).reshape(1, -1)
+                confidence = svc.decision_function(test_features)
                 test_prediction = svc.predict(test_features)
-
-                if test_prediction == 1:
+                if test_prediction == 1 and abs(confidence) > 0.8:
                     xbox_left = np.int(xleft * scale)
                     ytop_draw = np.int(ytop * scale)
                     win_draw = np.int(window * scale)
-                    cv2.rectangle(draw_img, (xbox_left, ytop_draw + ystart),
-                                  (xbox_left + win_draw, ytop_draw + win_draw + ystart), (0, 0, 255), 6)
+                    boxes.append(((xbox_left, ytop_draw + ystart),(xbox_left + win_draw, ytop_draw + win_draw + ystart)))
+    
+    heat = np.zeros_like(img[:,:,0]).astype(np.float)
+    # Add heat to each box in box list
+    heat = add_heat(heat,boxes)
+    recent_heats.append(heat)
+    heat = np.array(recent_heats).sum(axis=0)
+    # Apply threshold to help remove false positives
+    heat = apply_threshold(heat,heat_threshold)
+    
+    # Visualize the heatmap when displaying    
+    heatmap = np.clip(heat, 0, 255)
 
+    # Find final boxes from heatmap using label function
+    labels = label(heatmap)
+    draw_img = draw_labeled_bboxes(draw_img, labels)
+    
     return draw_img
