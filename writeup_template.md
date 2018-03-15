@@ -59,9 +59,11 @@ I tried various combinations of parameters and I found that increasing the value
 
 The code for this step is contained in the first code cell of the IPython notebook (or in lines # through # of the file called `some_file.py`). 
 
+I converted  the image to  `YCrCb` Color space as I found that it gave the best results overall in accuracy.
+I used spatial binning with `spatial_size=(16,16)` and color binning with 8 histogram bins and combined this along with the HOG features from all channels. I tried various values for spatial size and number of bins. While increasing these provided marginal improvements, the amount of increase in parameters caused the subsequent pipeline to be executed extremely slowly. while decreasing them subsequently decreased performance. I tried removing binning altogether, however this gave large number of false positives.
+Therefore i settled for the aforementioned values to strike a balance between accuracy and performance.
 
-I used spatial binning to 
-I have tried training multiple types of SVM's for this purpose. Most oftrained a linear SVM using 
+I have also tried training multiple types of SVM's for classification. I initially trained using LinearSVC and got some good results with occasional false positives. The accuracy averaged at 99%. I tried to improve this by useing GridSearchCV to get a good set of parameters and test out linear and rbf kernels and multiple C values. This gave me a very good accuracy of 99.5% with almost no false positives and clean detection of cars. However the model was extremely slow to both train as well as predict with training taking almost an hour and a half while prediction was taking almost 75seconds on average on a single frame. This meant a time of over 13 Hours to completely detect objects in the video. I initially thought that machine hardware could have been the issue as LinearSVC was predicting at 2 to 4 seconds per frame. However on taking a dump of the classifier I found that the classifier was nearly 140MB and was practically unusable. So I settled on the better performing LinearSVC model.
 
 ### Sliding Window Search
 
